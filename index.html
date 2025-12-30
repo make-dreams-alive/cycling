@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cycling Challenge</title>
+    <style>
+        body { margin: 0; background: #87CEEB; display: flex; flex-direction: column; align-items: center; font-family: sans-serif; overflow: hidden; }
+        #ui { position: absolute; top: 10px; font-size: 24px; color: white; text-shadow: 2px 2px 4px #000; z-index: 10; }
+        canvas { background: #91da41; border-bottom: 50px solid #555; display: block; }
+    </style>
+</head>
+<body>
+    <div id="ui">Distance: <span id="score">0</span>m</div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+
+        canvas.width = window.innerWidth;
+        canvas.height = 400;
+
+        let player = { x: 100, y: 300, w: 40, h: 60, dy: 0, speed: 5, jumping: false };
+        let obstacles = [];
+        let score = 0;
+        let gameActive = true;
+        const gravity = 0.8;
+
+        // Input handling
+        const keys = {};
+        window.addEventListener('keydown', e => keys[e.code] = true);
+        window.addEventListener('keyup', e => keys[e.code] = false);
+
+        function createObstacle() {
+            if (Math.random() < 0.02) {
+                obstacles.push({ x: canvas.width, y: 340, w: 30, h: 30 });
+            }
+        }
+
+        function update() {
+            if (!gameActive) return;
+
+            // Movement
+            if (keys['ArrowLeft'] && player.x > 0) player.x -= player.speed;
+            if (keys['ArrowRight'] && player.x < canvas.width - player.w) player.x += player.speed;
+            if (keys['ArrowUp'] && !player.jumping) {
+                player.dy = -15;
+                player.jumping = true;
+            }
+
+            // Physics
+            player.dy += gravity;
+            player.y += player.dy;
+            if (player.y > 300) {
+                player.y = 300;
+                player.dy = 0;
+                player.jumping = false;
+            }
+
+            // Obstacles & Collision
+            obstacles.forEach((obs, i) => {
+                obs.x -= 7; // Ground speed
+                if (obs.x + obs.w < 0) obstacles.splice(i, 1);
+
+                if (player.x < obs.x + obs.w && player.x + player.w > obs.x &&
+                    player.y < obs.y + obs.h && player.y + player.h > obs.y) {
+                    gameActive = false;
+                    alert("Crash! Distance: " + Math.floor(score) + "m");
+                    location.reload();
+                }
+            });
+
+            score += 0.1;
+            scoreEl.innerText = Math.floor(score);
+            createObstacle();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Road
+            ctx.fillStyle = "#666";
+            ctx.fillRect(0, 360, canvas.width, 40);
+
+            // Draw Cyclist (Simple Shape)
+            ctx.fillStyle = "blue";
+            ctx.fillRect(player.x, player.y, player.w, player.h); 
+            ctx.fillStyle = "black";
+            ctx.beginPath(); // Wheels
+            ctx.arc(player.x + 10, player.y + 55, 8, 0, Math.PI * 2);
+            ctx.arc(player.x + 30, player.y + 55, 8, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw Obstacles
+            ctx.fillStyle = "red";
+            obstacles.forEach(obs => ctx.fillRect(obs.x, obs.y, obs.w, obs.h));
+
+            update();
+            requestAnimationFrame(draw);
+        }
+
+        draw();
+    </script>
+</body>
+</html>
